@@ -1,0 +1,186 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Net;
+using System.IO;
+using System.Xml;
+using Microsoft.Office.Interop.Excel;
+
+namespace RESTClient
+{
+    /// <summary>
+    /// This is the sample application, so there is not input validation carried out,
+    /// Please work on the happy path only :)
+    /// </summary>
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            //do
+            //{
+            //    try
+            //    {
+            //        string content;
+            //        Console.WriteLine("Enter Method:");
+            //        string Method = Console.ReadLine();
+
+            //        Console.WriteLine("Enter URI:");
+            //        string uri = Console.ReadLine();
+
+            //        HttpWebRequest req = WebRequest.Create(uri) as HttpWebRequest;
+            //        req.KeepAlive = false;
+            //        req.Method = Method.ToUpper();
+
+            //        if (("POST,PUT").Split(',').Contains(Method.ToUpper()))
+            //        {
+            //            Console.WriteLine("Enter XML FilePath:");
+            //            string FilePath = Console.ReadLine();
+            //            content = (File.OpenText(@FilePath)).ReadToEnd();
+
+            //            byte[] buffer = Encoding.ASCII.GetBytes(content);
+            //            req.ContentLength = buffer.Length;
+            //            req.ContentType = "text/xml";
+            //            Stream PostData = req.GetRequestStream();
+            //            PostData.Write(buffer, 0, buffer.Length);
+            //            PostData.Close();
+
+            //        }
+
+            //        HttpWebResponse resp = req.GetResponse() as HttpWebResponse;
+
+
+            //        Encoding enc = System.Text.Encoding.GetEncoding(1252);
+            //        StreamReader loResponseStream = new StreamReader(resp.GetResponseStream(), enc);
+
+            //        string Response = loResponseStream.ReadToEnd();
+
+            //        loResponseStream.Close();
+            //        resp.Close();
+            //        Console.WriteLine(Response);
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        Console.WriteLine(ex.Message.ToString());
+            //    }
+
+            //    Console.WriteLine();
+            //    Console.WriteLine("Do you want to continue?");
+
+            //} while (Console.ReadLine().ToUpper() == "Y");
+
+            ConvertXMLtoExcel("C:\\Users\\ngopisetty\\Documents\\POC\\SravanPOC\\RESTFulDemo\\RESTClient\\XML\\Product.xml", "C:\\Users\\ngopisetty\\Documents\\POC\\");
+        }
+
+        private static void ConvertXMLtoExcel(string xmlFilePath,string pathToBeStored)
+        {
+            Application xlApp;
+            Workbook xlWorkBook;
+            Worksheet xlWorkSheet;
+            object misValue = System.Reflection.Missing.Value;
+
+            DataSet ds = new DataSet();
+            XmlReader xmlFile;
+            int i = 0;
+            int j = 0;
+            xlApp = new Application();
+            xlWorkBook = xlApp.Workbooks.Add(misValue);
+            xlWorkSheet = (Worksheet)xlWorkBook.Worksheets.Item[1];
+            xmlFile = XmlReader.Create(xmlFilePath, new XmlReaderSettings());
+            ds.ReadXml(xmlFile);
+            for (i = 0; i <= ds.Tables[0].Rows.Count - 1; i++)
+            {
+                for (j = 0; j <= ds.Tables[0].Columns.Count - 1; j++)
+                {
+                    xlWorkSheet.Cells[i + 1, j + 1] = ds.Tables[0].Rows[i].ItemArray[j].ToString();
+                }
+            }
+
+            XmlDocument doc = new XmlDocument();
+            doc.Load(xmlFilePath);
+
+
+            System.Data.DataTable dt = new System.Data.DataTable();
+            foreach (XmlNode xn in doc.ChildNodes[0].ChildNodes[0])
+            {
+                string tagName = xn.Name;
+                if (!dt.Columns.Contains(tagName))
+                {
+                    dt.Columns.Add(tagName);
+                }
+
+            }
+            DataRow dr = dt.NewRow();
+            foreach (XmlNode xn in doc.ChildNodes[0].ChildNodes[0])
+            {
+
+                dr[xn.Name] = xn.InnerText;
+
+
+            }
+            dt.Rows.Add(dr);
+
+            xlWorkBook.SaveAs(pathToBeStored+ "test.csv", XlFileFormat.xlCSV, misValue, misValue, misValue, misValue, XlSaveAsAccessMode.xlExclusive, misValue, misValue, misValue, misValue, misValue);
+            xlWorkBook.Close(true, misValue, misValue);
+            xlApp.Quit();
+            ReleaseObject(xlApp);
+            ReleaseObject(xlWorkBook);
+            ReleaseObject(xlWorkSheet);
+            //killExcel();
+        }
+        private static System.Data.DataTable CreateTestTable(string tableName)
+        {
+            // Create a test DataTable with two columns and a few rows.
+            System.Data.DataTable table = new System.Data.DataTable(tableName);
+            DataColumn column = new DataColumn("id", typeof(System.Int32));
+            column.AutoIncrement = true;
+            table.Columns.Add(column);
+
+            column = new DataColumn("item", typeof(System.String));
+            table.Columns.Add(column);
+
+            // Add ten rows.
+            DataRow row;
+            for (int i = 0; i <= 9; i++)
+            {
+                row = table.NewRow();
+                row["item"] = "item " + i;
+                table.Rows.Add(row);
+            }
+
+            table.AcceptChanges();
+            return table;
+        }
+        private static void ReleaseObject(object obj)
+        {
+            try
+            {
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(obj);
+                obj = null;
+            }
+            catch (Exception ex)
+            {
+                obj = null;
+
+            }
+            finally
+            {
+                GC.Collect();
+            }
+        }
+        private void killExcel()
+        {
+            System.Diagnostics.Process[] PROC = System.Diagnostics.Process.GetProcessesByName("EXCEL");
+            foreach (System.Diagnostics.Process PK in PROC)
+            {
+                if (PK.MainWindowTitle.Length == 0)
+                {
+                    PK.Kill();
+                }
+            }
+        }
+      
+    }
+
+}
